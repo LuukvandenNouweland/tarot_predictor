@@ -1,4 +1,4 @@
-# Webcam-pc: webcam.py en webcam_detectie.py draaien (CPU is genoeg)
+# Webcam-pc: alleen app/ draaien (CPU is genoeg)
 #   pip install -r requirements-webcam.txt
 # opencv-python i.p.v. -headless: alleen die kan een venster tonen.
 torch>=2.6

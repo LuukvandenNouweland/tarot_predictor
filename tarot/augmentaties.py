@@ -1,20 +1,11 @@
 """Webcam-achtige augmentaties voor de tarotkaart-classifier.
 
-Gebruik:
-    python augment.py            # schrijft previews/augment_preview.jpg
-    python augment.py --n 8      # meer voorbeelden per kaart
+Bekijken: python -m dataset.preview_augmentaties
 """
-import argparse
-import random
-from pathlib import Path
-
 import albumentations as A
 import cv2
-import numpy as np
 
-KAARTEN_DIR = Path("Tarot_kaarten/1920s (Pam B)")
-# Kaarten zijn ~0.6 breed/hoog; houd die verhouding aan.
-HOOGTE, BREEDTE = 384, 224
+from tarot.config import BREEDTE, HOOGTE
 
 
 def build_transform():
@@ -59,54 +50,3 @@ def build_transform():
         # A.CoarseDropout(num_holes_range=(1, 2), hole_height_range=(0.1, 0.25),
         #                 hole_width_range=(0.1, 0.25), fill="random_uniform", p=0.3),
     ])
-
-
-def lees_rgb(pad: Path) -> np.ndarray:
-    # imdecode i.p.v. imread: werkt ook met niet-ASCII paden op Windows.
-    img = cv2.imdecode(np.fromfile(pad, dtype=np.uint8), cv2.IMREAD_COLOR)
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-
-def maak_preview(n_kaarten: int, n_per_kaart: int, uit: Path) -> None:
-    transform = build_transform()
-    paden = random.sample(sorted(KAARTEN_DIR.glob("*.jpg")), n_kaarten)
-    rijen = []
-    for pad in paden:
-        img = lees_rgb(pad)
-        origineel = cv2.resize(img, (BREEDTE, HOOGTE))
-        varianten = [transform(image=img)["image"] for _ in range(n_per_kaart)]
-        rijen.append(np.hstack([origineel, *varianten]))
-    uit.parent.mkdir(exist_ok=True)
-    cv2.imwrite(str(uit), cv2.cvtColor(np.vstack(rijen), cv2.COLOR_RGB2BGR))
-    print(f"Preview opgeslagen: {uit} (eerste kolom = origineel)")
-
-
-def genereer(uit: Path, n_train: int, n_val: int) -> None:
-    """Schrijft uit/train/<kaart>/*.jpg en uit/val/<kaart>/*.jpg (ImageFolder-indeling)."""
-    transform = build_transform()
-    paden = sorted(KAARTEN_DIR.glob("*.jpg"))
-    for i, pad in enumerate(paden, 1):
-        img = lees_rgb(pad)
-        for split, n in (("train", n_train), ("val", n_val)):
-            map_ = uit / split / pad.stem
-            map_.mkdir(parents=True, exist_ok=True)
-            for j in range(n):
-                aug = cv2.cvtColor(transform(image=img)["image"], cv2.COLOR_RGB2BGR)
-                _, buf = cv2.imencode(".jpg", aug, [cv2.IMWRITE_JPEG_QUALITY, 95])
-                buf.tofile(map_ / f"{j:04d}.jpg")
-        print(f"[{i}/{len(paden)}] {pad.stem}")
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--genereer", action="store_true", help="dataset maken i.p.v. preview")
-    parser.add_argument("--kaarten", type=int, default=4)
-    parser.add_argument("--n", type=int, default=6)
-    parser.add_argument("--n-train", type=int, default=400)
-    parser.add_argument("--n-val", type=int, default=50)
-    parser.add_argument("--uit", type=Path, default=None)
-    args = parser.parse_args()
-    if args.genereer:
-        genereer(args.uit or Path("dataset"), args.n_train, args.n_val)
-    else:
-        maak_preview(args.kaarten, args.n, args.uit or Path("previews/augment_preview.jpg"))

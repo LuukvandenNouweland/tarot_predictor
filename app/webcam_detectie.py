@@ -5,14 +5,12 @@ De detector draait op elk frame (omtrek volgt de kaart), de classifier
 elke --interval seconden. Rechtsboven staat de rechtgetrokken uitsnede:
 dat is precies wat de classifier ziet. Stoppen: q of Esc.
 
-Gebruik:
-    python webcam_detectie.py
-    python webcam_detectie.py --interval 0.5 --min-conf 0.6
-    python webcam_detectie.py --foto example/WIN_....jpg     # test op een foto
+Gebruik (vanuit de projectmap):
+    python -m app.webcam_detectie
+    python -m app.webcam_detectie --interval 0.5 --min-conf 0.6
+    python -m app.webcam_detectie --foto data/voorbeelden/WIN_....jpg   # test op een foto
 
-Nodig op de webcam-pc:
-    pip install torch timm ultralytics opencv-python
-    models/tarot_classifier.pt en models/kaart_detector.pt
+Nodig op de webcam-pc: pip install -r requirements-webcam.txt
 """
 import argparse
 import time
@@ -23,23 +21,10 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
-from webcam import laad_model, voorspel
-
-
-def detecteer(detector, frame_bgr: np.ndarray, min_conf: float):
-    """Beste kaart in beeld: (4x2 hoekpunten in framepixels, confidence) of None."""
-    res = detector(frame_bgr, imgsz=320, conf=min_conf, verbose=False)[0]
-    if res.keypoints is None or len(res.boxes) == 0:
-        return None
-    i = int(res.boxes.conf.argmax())
-    return res.keypoints.xy[i].cpu().numpy().astype(np.float32), float(res.boxes.conf[i])
-
-
-def recht_trekken(frame_bgr: np.ndarray, hoeken: np.ndarray, hoogte: int, breedte: int) -> np.ndarray:
-    """Hoekpunten (LB, RB, RO, LO in beeld) naar een plat rechthoekig kaartbeeld."""
-    doel = np.float32([[0, 0], [breedte, 0], [breedte, hoogte], [0, hoogte]])
-    M = cv2.getPerspectiveTransform(hoeken, doel)
-    return cv2.warpPerspective(frame_bgr, M, (breedte, hoogte), flags=cv2.INTER_LINEAR)
+from tarot.beeld import lees_bgr, schrijf_jpg
+from tarot.classifier import laad_model, voorspel
+from tarot.config import CLASSIFIER_PAD, DETECTOR_PAD, PREVIEWS_DIR
+from tarot.detector import detecteer, recht_trekken
 
 
 def tekst(beeld, regel, pos, grootte=0.7, dikte=1):
@@ -80,8 +65,8 @@ def verwerk(frame, detector, classifier, klassen, hoogte, breedte, device, min_c
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--classifier", type=Path, default=Path("models/tarot_classifier.pt"))
-    parser.add_argument("--detector", type=Path, default=Path("models/kaart_detector.pt"))
+    parser.add_argument("--classifier", type=Path, default=CLASSIFIER_PAD)
+    parser.add_argument("--detector", type=Path, default=DETECTOR_PAD)
     parser.add_argument("--interval", type=float, default=1.0, help="seconden tussen classificaties")
     parser.add_argument("--min-conf", type=float, default=0.5, help="minimale detector-confidence")
     parser.add_argument("--camera", type=int, default=0)
@@ -96,16 +81,15 @@ def main():
     print(f"Modellen geladen ({len(klassen)} kaarten) op {device}")
 
     if args.foto is not None:
-        frame = cv2.imdecode(np.fromfile(args.foto, dtype=np.uint8), cv2.IMREAD_COLOR)
+        frame = lees_bgr(args.foto)
         detectie, top, uitsnede = verwerk(frame, detector, classifier, klassen, hoogte, breedte,
                                           device, args.min_conf)
         if detectie is None:
             print("Geen kaart gevonden")
         else:
             print(f"kaart {detectie[1]:.0%}  |  " + "  ".join(f"{klassen[i]} {p:.0%}" for i, p in top))
-        uit = Path("previews") / f"detectie_{args.foto.stem}.jpg"
-        uit.parent.mkdir(exist_ok=True)
-        cv2.imwrite(str(uit), teken(frame, detectie, top, klassen, uitsnede, args.venster_breedte))
+        uit = PREVIEWS_DIR / f"detectie_{args.foto.stem}.jpg"
+        schrijf_jpg(uit, teken(frame, detectie, top, klassen, uitsnede, args.venster_breedte))
         print(f"Resultaat opgeslagen: {uit}")
         return
 

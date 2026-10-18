@@ -7,12 +7,12 @@ Hoekpunten staan in beeldvolgorde: 0 = linksboven, 1 = rechtsboven,
 2 = rechtsonder, 3 = linksonder (zoals de kaart in beeld staat). Een omgekeerde
 kaart wordt na rechttrekken dus ook omgekeerd uitgesneden.
 
-Achtergronden: worden procedureel gemaakt. Staan er foto's in achtergronden/
+Achtergronden: worden procedureel gemaakt. Staan er foto's in data/achtergronden/
 (bv. webcamframes van je kamer ZONDER kaart), dan worden die ook gebruikt.
 
-Gebruik:
-    python maak_yolo_dataset.py                  # preview: previews/yolo_preview.jpg
-    python maak_yolo_dataset.py --genereer       # dataset_yolo/ + kaarten.yaml
+Gebruik (vanuit de projectmap):
+    python -m dataset.maak_yolo_dataset              # preview: previews/yolo_preview.jpg
+    python -m dataset.maak_yolo_dataset --genereer   # data/yolo/ + kaarten.yaml
 """
 import argparse
 from pathlib import Path
@@ -21,12 +21,11 @@ import albumentations as A
 import cv2
 import numpy as np
 
-from augment import KAARTEN_DIR, lees_rgb
+from tarot.beeld import lees_rgb, schrijf_jpg
+from tarot.config import ACHTERGROND_DIR, FRAME_B, FRAME_H, KAARTEN_DIR, PREVIEWS_DIR, YOLO_DATA_DIR
 
-FRAME_B, FRAME_H = 320, 180
 RENDER = 2  # eerst op 2x resolutie tekenen en dan verkleinen: nette randen
 RB, RH = FRAME_B * RENDER, FRAME_H * RENDER
-ACHTERGROND_DIR = Path("achtergronden")
 FLIP_IDX = [1, 0, 3, 2]  # bij horizontaal spiegelen wisselen links en rechts
 HUIDKLEUREN = np.array([[224, 172, 105], [198, 134, 66], [141, 85, 36], [255, 219, 172]], np.float32)
 
@@ -228,8 +227,7 @@ def maak_preview(aantal: int, uit: Path, seed: int, alle_richtingen: bool) -> No
     while len(tegels) % kolommen:
         tegels.append(np.zeros_like(tegels[0]))
     rijen = [np.hstack(tegels[i:i + kolommen]) for i in range(0, len(tegels), kolommen)]
-    uit.parent.mkdir(exist_ok=True)
-    cv2.imwrite(str(uit), cv2.cvtColor(np.vstack(rijen), cv2.COLOR_RGB2BGR))
+    schrijf_jpg(uit, cv2.cvtColor(np.vstack(rijen), cv2.COLOR_RGB2BGR))
     print(f"Preview opgeslagen: {uit} ({len(fotos)} foto-achtergronden gevonden)")
     print("Hoekpunten: 0 = rood (linksboven), 1 = groen, 2 = blauw, 3 = paars")
 
@@ -274,8 +272,8 @@ if __name__ == "__main__":
                         help="ook zijwaartse en omgekeerde kaarten (standaard: alleen rechtop, ±30°)")
     args = parser.parse_args()
     if args.genereer:
-        genereer(args.uit or Path("dataset_yolo"), args.n_train, args.n_val, args.seed or 0,
+        genereer(args.uit or YOLO_DATA_DIR, args.n_train, args.n_val, args.seed or 0,
                  args.alle_richtingen)
     else:
-        maak_preview(args.aantal, args.uit or Path("previews/yolo_preview.jpg"), args.seed,
+        maak_preview(args.aantal, args.uit or PREVIEWS_DIR / "yolo_preview.jpg", args.seed,
                      args.alle_richtingen)

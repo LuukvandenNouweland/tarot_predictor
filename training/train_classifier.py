@@ -1,11 +1,11 @@
 """Tarotkaart-classifier trainen met augmentaties die elke epoch opnieuw gemaakt worden.
 
-Gebruik:
-    python train.py                       # standaardinstellingen
-    python train.py --epochs 30 --model convnext_tiny
+Gebruik (vanuit de projectmap):
+    python -m training.train_classifier                       # standaardinstellingen
+    python -m training.train_classifier --epochs 30 --model convnext_tiny
 
-Optioneel: zet echte webcam-uitsneden in test_echt/<kaartnaam>/*.jpg
-(kaartnaam zoals de bestandsnaam van de scan, bv. test_echt/the_moon/1.jpg).
+Optioneel: zet echte webcam-uitsneden in data/test_echt/<kaartnaam>/*.jpg
+(kaartnaam zoals de bestandsnaam van de scan, bv. data/test_echt/the_moon/1.jpg).
 Die worden dan elke epoch ook getest; dat is de score die er echt toe doet.
 """
 import argparse
@@ -19,9 +19,10 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
-from augment import BREEDTE, HOOGTE, KAARTEN_DIR, build_transform, lees_rgb
+from tarot.augmentaties import build_transform
+from tarot.beeld import lees_rgb
+from tarot.config import BREEDTE, CLASSIFIER_PAD, HOOGTE, KAARTEN_DIR, TEST_ECHT_DIR
 
-TEST_ECHT_DIR = Path("test_echt")
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1) * 255
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1) * 255
 
@@ -84,7 +85,7 @@ def laad_test_echt(klassen: list[str]) -> tuple[torch.Tensor, torch.Tensor] | No
         labels.append(klassen.index(pad.parent.name))
     if not beelden:
         return None
-    print(f"{len(beelden)} echte webcam-uitsneden gevonden in {TEST_ECHT_DIR}/")
+    print(f"{len(beelden)} echte webcam-uitsneden gevonden in {TEST_ECHT_DIR}")
     return torch.from_numpy(np.stack(beelden)).permute(0, 3, 1, 2), torch.tensor(labels)
 
 
@@ -118,7 +119,7 @@ def main():
     parser.add_argument("--lr", type=float, default=3e-4)
     # Gemeten: meer dan ~4 workers levert op Windows nauwelijks meer op, wel langere opstart.
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument("--uit", type=Path, default=Path("models/tarot_classifier.pt"))
+    parser.add_argument("--uit", type=Path, default=CLASSIFIER_PAD)
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

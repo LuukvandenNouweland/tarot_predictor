@@ -1,7 +1,7 @@
-# Training-pc: classifier (augment.py, train.py) en detector
-# (maak_yolo_dataset.py, train_yolo.py). Python 3.12, NVIDIA-GPU met CUDA 12.6.
+# Training-pc: alles in dataset/ en training/ (en app/).
+# Python 3.12, NVIDIA-GPU met CUDA 12.6.
 #   pip install -r requirements.txt
-# Voor alleen webcam.py: zie requirements-webcam.txt
+# Alleen de webcam-apps draaien: zie requirements-webcam.txt
 --extra-index-url https://download.pytorch.org/whl/cu126
 
 torch==2.14.1

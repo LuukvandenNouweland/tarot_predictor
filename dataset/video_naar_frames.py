@@ -1,16 +1,16 @@
 """Frames uit achtergrondvideo's halen voor maak_yolo_dataset.py.
 
-Neem je kamer op ZONDER kaart in beeld en zet de video in achtergronden/.
-    python video_naar_frames.py
-Schrijft achtergronden/frames/<video>_<nr>.jpg op 640x360 (de renderresolutie
+Neem je kamer op ZONDER kaart in beeld en zet de video in data/achtergronden/.
+    python -m dataset.video_naar_frames
+Schrijft data/achtergronden/frames/<video>_<nr>.jpg op 640x360 (de renderresolutie
 van de dataset-generator; groter heeft geen zin en kost alleen geheugen).
 """
 import argparse
-from pathlib import Path
 
 import cv2
 
-ACHTERGROND_DIR = Path("achtergronden")
+from tarot.config import ACHTERGROND_DIR
+
 GROOTTE = (640, 360)
 
 

@@ -3,20 +3,15 @@
 __pycache__/
 *.pyc
 
+# Data: alleen data/kaarten/ (de scans) gaat in git; achtergronden,
+# voorbeeldfoto's, backup en gegenereerde datasets blijven lokaal.
+data/*
+!data/kaarten/
+
 # Gegenereerd / tijdelijk
 previews/
-dataset/
-
-# Dubbele kopie van de scans
-Tarot_kaarten/*backup*/
-
-# Eigen webcamfoto's, niet publiek
-example/
-
-# Detector: gegenereerde data, trainingsruns, eigen achtergrondfoto's
-dataset_yolo/
-runs_yolo/
 runs/
-achtergronden/
+
+# Door ultralytics gedownloade basismodellen
 /yolo*.pt
 /weights/
