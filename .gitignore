@@ -19,3 +19,4 @@ runs_yolo/
 runs/
 achtergronden/
 /yolo*.pt
+/weights/
