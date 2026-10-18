@@ -12,3 +12,9 @@ Tarot_kaarten/*backup*/
 
 # Eigen webcamfoto's, niet publiek
 example/
+
+# Detector: gegenereerde data, trainingsruns, eigen achtergrondfoto's
+dataset_yolo/
+runs_yolo/
+achtergronden/
+/yolo*.pt
