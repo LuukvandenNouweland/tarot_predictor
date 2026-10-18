@@ -17,7 +17,9 @@ achtergronden van de eigen kamer.
 | `tarot/` | gedeelde code: `config.py` (alle paden), augmentaties, classifier, detector |
 | `dataset/` | scripts die data maken |
 | `training/` | scripts die modellen trainen |
-| `app/` | de webcam-apps |
+| `app/` | de webcam-apps (OpenCV-venster) |
+| `backend/` | FastAPI-server: camera, herkenning, MJPEG-stream en WebSocket |
+| `frontend/` | webpagina met video en 3D-personage (Vite + TypeScript + three.js) |
 | `models/` | getrainde modellen (in git) |
 | `data/kaarten/` | de 78 scans; bestandsnaam = klassenaam (in git) |
 | `data/achtergronden/`, `data/voorbeelden/`, `data/yolo/` | lokaal, niet in git |
@@ -39,7 +41,36 @@ Webcam-pc (CPU is genoeg): `pip install -r requirements-webcam.txt`
 Alle scripts draaien als module **vanuit de projectmap** (`python -m map.script`),
 zodat ze `tarot/` kunnen vinden.
 
-### Webcam
+### Webfrontend (video + 3D-personage)
+
+Productie, één commando (de gebouwde frontend staat in `frontend/dist/`, Node is niet nodig):
+
+```
+python -m backend.main                         # open http://127.0.0.1:8000
+python -m backend.main --bron 1                # andere camera
+python -m backend.main --bron data/voorbeelden/foto.jpg   # testen zonder webcam
+python -m backend.main --stabiel 8 --weg 5 --min-kans 0.6 # flikkeren tegengaan
+python -m backend.main --host 0.0.0.0          # ook bereikbaar vanaf telefoon/tablet in het netwerk
+```
+
+Een kaart wordt pas gemeld na `--stabiel` frames op rij (standaard 5) met een
+classifier-kans ≥ `--min-kans`; "geen kaart" na `--weg` frames zonder kaart.
+Testpagina zonder frontend: http://127.0.0.1:8000/test
+
+Ontwikkelen aan de frontend (Node 24 LTS, Vite-proxy naar de backend op :8000):
+
+```
+python -m backend.main                         # terminal 1
+cd frontend
+npm install                                    # eenmalig
+npm run dev                                    # terminal 2, open http://localhost:5173
+npm run build                                  # klaar: nieuwe build in frontend/dist/ (in git)
+```
+
+Animaties instellen: `frontend/src/animaties.ts` (welke animatie bij idle, een
+nieuwe kaart, kaart weg, of per kaart). Daarna `npm run build`.
+
+### Webcam (OpenCV-venster)
 
 ```
 python -m app.webcam_detectie                  # met detector: kaart mag overal in beeld

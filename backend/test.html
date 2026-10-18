@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Tarot herkenner: backend-test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; background: #111; color: #eee; }
+    img { max-width: 100%; border: 1px solid #444; }
+    #kaart { font-size: 2rem; margin: 8px 0; }
+    pre { background: #222; padding: 8px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Backend-test</h1>
+  <img src="/video" alt="camera">
+  <div id="kaart">…</div>
+  <div id="ws">verbinden…</div>
+  <pre id="json"></pre>
+  <script>
+    function verbind() {
+      const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
+      ws.onopen = () => document.getElementById("ws").textContent = "verbonden";
+      ws.onclose = () => {
+        document.getElementById("ws").textContent = "verbinding weg, opnieuw proberen…";
+        setTimeout(verbind, 1000);
+      };
+      ws.onmessage = (e) => {
+        const s = JSON.parse(e.data);
+        document.getElementById("json").textContent = JSON.stringify(s, null, 2);
+        if (s.type === "change") {
+          document.getElementById("kaart").textContent = s.label ?? "(geen kaart)";
+          console.log("change", s);
+        }
+      };
+    }
+    verbind();
+  </script>
+</body>
+</html>

@@ -13,3 +13,6 @@ ultralytics==8.4.182
 opencv-python==5.0.0.93
 opencv-python-headless==5.0.0.93
 numpy==2.5.4
+# Webfrontend (backend/)
+fastapi==0.146.0
+uvicorn[standard]==0.54.0

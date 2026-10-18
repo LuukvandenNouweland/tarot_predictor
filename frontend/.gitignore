@@ -1,0 +1,4 @@
+node_modules
+*.log
+*.local
+# dist/ staat bewust WEL in git: dan heeft de webcam-pc geen Node nodig.

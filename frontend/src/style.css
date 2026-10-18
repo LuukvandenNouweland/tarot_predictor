@@ -1,0 +1,134 @@
+:root {
+  --achtergrond: #120d1a;
+  --paneel: #1c1528;
+  --rand: #3a2d4f;
+  --goud: #e8c66a;
+  --tekst: #efe7f7;
+  --gedempt: #a99bbd;
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--tekst);
+  background: var(--achtergrond);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Breed: video links, personage rechts. Smal: onder elkaar. */
+.indeling {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+@media (max-width: 900px) {
+  /* Onder elkaar: geen volle schermhoogte verdelen, anders ontstaat er een gat onder de video. */
+  .indeling {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+  }
+
+  .scene-paneel {
+    min-height: 65vh;
+  }
+}
+
+.paneel {
+  background: var(--paneel);
+  border: 1px solid var(--rand);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-paneel {
+  align-self: start;
+}
+
+.video-wrap {
+  position: relative;
+  line-height: 0;
+}
+
+#video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #000;
+  min-height: 120px;
+}
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.verbinding {
+  margin: 0;
+  padding: 8px 12px;
+  color: #ff9b8a;
+  font-size: 0.9rem;
+}
+
+.verbinding:empty {
+  display: none;
+}
+
+.scene-paneel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+#scene {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+}
+
+/* Absoluut: het canvas mag de grootte van #scene niet beïnvloeden (anders groeit hij via de ResizeObserver). */
+#scene canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.kaartinfo {
+  padding: 16px 20px 24px;
+  text-align: center;
+  border-top: 1px solid var(--rand);
+}
+
+.kaartnaam {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--goud);
+  min-height: 1.3em;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+.kaartnaam.zichtbaar {
+  opacity: 1;
+  transform: none;
+}
+
+.kaartdetail {
+  margin-top: 4px;
+  color: var(--gedempt);
+}

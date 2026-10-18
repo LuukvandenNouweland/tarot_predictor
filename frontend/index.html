@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarot herkenner</title>
+  </head>
+  <body>
+    <main class="indeling">
+      <section class="paneel video-paneel">
+        <div class="video-wrap">
+          <img id="video" src="/video" alt="Camerabeeld" />
+          <canvas id="overlay"></canvas>
+        </div>
+        <p id="verbinding" class="verbinding">verbinden…</p>
+      </section>
+
+      <section class="paneel scene-paneel">
+        <div id="scene"></div>
+        <div class="kaartinfo">
+          <div id="kaartnaam" class="kaartnaam"></div>
+          <div id="kaartdetail" class="kaartdetail">Houd een kaart voor de camera</div>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
