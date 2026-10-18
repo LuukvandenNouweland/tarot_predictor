@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Gegenereerd / tijdelijk
+previews/
+dataset/
+
+# Dubbele kopie van de scans
+Tarot_kaarten/*backup*/
+
+# Eigen webcamfoto's, niet publiek
+example/
