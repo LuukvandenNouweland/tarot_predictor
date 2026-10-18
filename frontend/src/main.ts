@@ -14,6 +14,10 @@ const kaartdetail = document.querySelector<HTMLElement>("#kaartdetail")!;
 const overlay = new Overlay(document.querySelector<HTMLCanvasElement>("#overlay")!);
 const personage = new Personage(document.querySelector<HTMLElement>("#scene")!);
 personage.laad("/models/Skull.gltf").catch((fout) => console.error("Model laden mislukt:", fout));
+if (ANIMATIES.klik) {
+  const klik = ANIMATIES.klik;
+  personage.opKlik = () => personage.speelEenmalig(klik);
+}
 
 let vorigeKaart: string | null = null;
 

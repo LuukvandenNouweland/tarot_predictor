@@ -13,6 +13,12 @@ export class Personage {
   private mixer: THREE.AnimationMixer | null = null;
   private acties = new Map<string, THREE.AnimationAction>();
   private huidige: THREE.AnimationAction | null = null;
+  private terugNaarIdle: number | undefined; // timer tijdens het vasthouden van een eindpose
+  private model: THREE.Object3D | null = null;
+  private straal = new THREE.Raycaster();
+
+  /** Wordt aangeroepen als er op het personage geklikt wordt. */
+  opKlik: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -26,6 +32,15 @@ export class Personage {
     zon.position.set(2, 4, 3);
     this.scene.add(zon);
 
+    const canvas = this.renderer.domElement;
+    canvas.addEventListener("click", (e) => {
+      if (this.raakt(e)) this.opKlik?.();
+    });
+    // Handje als je boven het personage zweeft, zodat je ziet dat je kunt klikken.
+    canvas.addEventListener("pointermove", (e) => {
+      canvas.style.cursor = this.opKlik && this.raakt(e) ? "pointer" : "";
+    });
+
     new ResizeObserver(() => this.pasGrootteAan()).observe(container);
     this.pasGrootteAan();
     this.renderer.setAnimationLoop(() => {
@@ -37,6 +52,7 @@ export class Personage {
   async laad(url: string): Promise<void> {
     const gltf = await new GLTFLoader().loadAsync(url);
     this.scene.add(gltf.scene);
+    this.model = gltf.scene;
     this.richtCamera(gltf.scene);
 
     this.mixer = new THREE.AnimationMixer(gltf.scene);
@@ -44,9 +60,15 @@ export class Personage {
       this.acties.set(clip.name, this.mixer.clipAction(clip));
     }
     console.log("Animaties in het model:", gltf.animations.map((c) => c.name));
-    // Na een eenmalige animatie terug naar idle.
+    // Na een eenmalige animatie terug naar idle, eventueel na de eindpose even vast te houden.
     this.mixer.addEventListener("finished", (e) => {
-      if (e.action === this.huidige) this.speelIdle();
+      if (e.action !== this.huidige) return;
+      const seconden = ANIMATIES.vasthouden[e.action.getClip().name] ?? 0;
+      if (seconden > 0) {
+        this.terugNaarIdle = window.setTimeout(() => this.speelIdle(), seconden * 1000);
+      } else {
+        this.speelIdle();
+      }
     });
     this.speelIdle();
   }
@@ -68,6 +90,8 @@ export class Personage {
     }
     if (actie === this.huidige && !eenmalig) return;
 
+    // Een nieuwe animatie onderbreekt het vasthouden van een eindpose.
+    window.clearTimeout(this.terugNaarIdle);
     actie.reset();
     actie.setLoop(eenmalig ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
     actie.clampWhenFinished = eenmalig;
@@ -76,6 +100,18 @@ export class Personage {
       this.huidige.crossFadeTo(actie, ANIMATIES.overgang, false);
     }
     this.huidige = actie;
+  }
+
+  /** Raakt de muis/vinger het model? */
+  private raakt(e: MouseEvent): boolean {
+    if (!this.model) return false;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const muis = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.straal.setFromCamera(muis, this.camera);
+    return this.straal.intersectObject(this.model, true).length > 0;
   }
 
   /** Camera zo zetten dat het hele model in beeld is, wat het formaat ook is. */

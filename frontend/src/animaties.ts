@@ -14,6 +14,10 @@ export interface AnimatieConfig {
   kaartWeg: string | null;
   /** Eigen reactie per kaart; gaat vóór nieuweKaart. */
   perKaart: Record<string, string>;
+  /** Speelt één keer als je op het personage klikt; null = klikken doet niets. */
+  klik: string | null;
+  /** Hoe lang (s) de eindpose van een eenmalige animatie blijft staan voordat hij terug naar idle gaat. */
+  vasthouden: Record<string, number>;
   /** Overgangstijd (crossfade) tussen animaties, in seconden. */
   overgang: number;
 }
@@ -25,6 +29,10 @@ export const ANIMATIES: AnimatieConfig = {
   perKaart: {
     // the_tower: "Death",
     // the_sun: "Dance",
+  },
+  klik: "Death",
+  vasthouden: {
+    Death: 1, // schedel blijft 1 s liggen
   },
   overgang: 0.3,
 };
