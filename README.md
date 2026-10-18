@@ -8,7 +8,26 @@ webcam → detector (YOLO-pose: 4 hoekpunten) → rechttrekken → classifier (E
 
 Beide modellen zijn alleen op **synthetische** data getraind: 78 scans met webcam-achtige
 augmentaties (wazig, lage resolutie, kleurzweem, ruis), en voor de detector kaarten op
-achtergronden van de eigen kamer.
+achtergronden van de eigen kamer. Een webpagina toont de camera met de herkende kaart en een
+3D-schedel die op kaarten reageert.
+
+## Snel starten
+
+| Wat | Waar | Commando |
+|---|---|---|
+| App draaien | webcam-pc | `git pull`, dan `python -m backend.main` → http://127.0.0.1:8000 |
+| Frontend aanpassen | training-pc | `python -m backend.main` + `cd frontend; npm run dev` → http://localhost:5173 |
+| Frontend opleveren | training-pc | `cd frontend; npm run build`, commit **inclusief** `frontend/dist/`, push |
+| Testen zonder webcam | training-pc | `python -m backend.main --bron data/voorbeelden/<foto>.jpg` |
+
+## Status
+
+- Werkt: detector + classifier, webfrontend met video, overlay en 3D-schedel
+  (`Yes` bij een nieuwe kaart, `No` als hij weggaat, klik = `Death`).
+- Nog niet: omgekeerde kaarten (`"reversed"` is altijd `false`; de classifier kent
+  alleen rechtop), zijwaarts gehouden kaarten (detector niet op getraind), en een
+  test op echte webcam-uitsneden (`data/test_echt/`).
+- `plan.md` is het oorspronkelijke plan; deze README is actueel.
 
 ## Mappen
 
@@ -34,7 +53,11 @@ py -V:3.12 -m venv .venv
 .\.venv\Scripts\python -m pip install -r requirements.txt
 ```
 
-Webcam-pc (CPU is genoeg): `pip install -r requirements-webcam.txt`
+Webcam-pc (CPU is genoeg, Node niet nodig): `pip install -r requirements-webcam.txt`
+
+Alleen voor frontend-ontwikkeling: Node 24 LTS (`winget install OpenJS.NodeJS.LTS`), dan
+`cd frontend; npm install`. Herstart VS Code na het installeren van Node, anders vindt de
+terminal `npm` niet.
 
 ## Gebruik
 
@@ -57,18 +80,30 @@ Een kaart wordt pas gemeld na `--stabiel` frames op rij (standaard 5) met een
 classifier-kans ≥ `--min-kans`; "geen kaart" na `--weg` frames zonder kaart.
 Testpagina zonder frontend: http://127.0.0.1:8000/test
 
-Ontwikkelen aan de frontend (Node 24 LTS, Vite-proxy naar de backend op :8000):
+Ontwikkelen aan de frontend (Vite-proxy naar de backend op :8000):
 
 ```
-python -m backend.main                         # terminal 1
+python -m backend.main                         # terminal 1, blijft draaien
 cd frontend
-npm install                                    # eenmalig
-npm run dev                                    # terminal 2, open http://localhost:5173
-npm run build                                  # klaar: nieuwe build in frontend/dist/ (in git)
+npm run dev                                    # terminal 2, blijft draaien; open http://localhost:5173
 ```
 
-Animaties instellen: `frontend/src/animaties.ts` (welke animatie bij idle, een
-nieuwe kaart, kaart weg, of per kaart). Daarna `npm run build`.
+`npm run dev` start je één keer; wijzigingen in `frontend/src/` verschijnen vanzelf.
+Alleen na wijzigingen in `vite.config.ts` of een `npm install` opnieuw starten.
+
+**Klaar? Altijd bouwen en `dist/` committen.** De backend (poort 8000) en de webcam-pc
+gebruiken alleen `frontend/dist/`, niet `src/`:
+
+```
+cd frontend
+npm run build
+git add -A; git commit -m "..."; git push      # daarna op de webcam-pc: git pull + Ctrl+F5
+```
+
+Animaties instellen: `frontend/src/animaties.ts`. Daar staat welke animatie speelt bij
+idle, een nieuwe kaart, kaart weg, per kaart, bij een klik op de schedel, en hoe lang een
+eindpose blijft staan (`vasthouden`). Beschikbaar in `Skull.gltf`: Idle, Yes, No, Jump,
+Dance, HitRecieve, Death, Bite_Front, Bite_InPlace, Walk (ook gelogd in de browserconsole).
 
 ### Webcam (OpenCV-venster)
 
