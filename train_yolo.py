@@ -5,6 +5,8 @@ Eerst de dataset maken:
 Dan trainen:
     python train_yolo.py
 Resultaat: runs_yolo/kaart_pose/weights/best.pt
+Onderbroken? Verder gaan met:
+    python train_yolo.py --hervat runs_yolo/kaart_pose/weights/last.pt
 
 Nodig: pip install ultralytics
 """
@@ -21,7 +23,14 @@ def main():
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch", type=int, default=64)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--hervat", type=Path, default=None,
+                        help="onderbroken training voortzetten vanaf dit last.pt")
     args = parser.parse_args()
+
+    if args.hervat is not None:
+        # Neemt alle instellingen (epochs, map, optimizer-stand) over uit de onderbroken run.
+        YOLO(str(args.hervat)).train(resume=True)
+        return
 
     model = YOLO(args.model)
     model.train(
@@ -30,7 +39,8 @@ def main():
         epochs=args.epochs,
         batch=args.batch,
         workers=args.workers,
-        project="runs_yolo",
+        # Absoluut pad: een relatief pad zet ultralytics onder runs/pose/.
+        project=str(Path("runs_yolo").resolve()),
         name="kaart_pose",
         exist_ok=True,
         # De dataset bevat al rotatie en perspectief; YOLO's eigen spiegelen

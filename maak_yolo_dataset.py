@@ -86,15 +86,17 @@ def foto_achtergrond(rng, foto: np.ndarray) -> np.ndarray:
     return cv2.resize(foto[y:y + ch, x:x + cw], (RB, RH)).astype(np.float32)
 
 
-def plaats_kaart(rng, kaart_b: int, kaart_h: int):
-    """Kies hoekpunten in render-pixels; geeft (eigen hoeken, beeldvolgorde-hoeken) of None."""
+def plaats_kaart(rng, kaart_b: int, kaart_h: int, alle_richtingen: bool):
+    """Kies hoekpunten in render-pixels; geeft (eigen hoeken, beeldvolgorde-hoeken) of None.
+
+    alle_richtingen=False: kaart rechtop, ±30° scheef.
+    alle_richtingen=True: ook 90°, 180° en 270° gedraaid (zijwaarts / omgekeerd).
+    """
     for _ in range(20):
         h = rng.uniform(0.4, 0.95) * RH
         w = h * kaart_b / kaart_h
-        hoek = np.deg2rad(rng.uniform(-30, 30))
-        omgekeerd = rng.random() < 0.5
-        if omgekeerd:
-            hoek += np.pi
+        kwartslagen = int(rng.integers(4)) if alle_richtingen else 0  # met de klok mee
+        hoek = np.deg2rad(rng.uniform(-30, 30) + 90 * kwartslagen)
         # Eigen hoeken van de kaart: LB, RB, RO, LO.
         p = np.array([[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]])
         p += rng.normal(0, 0.04 * h, p.shape)  # perspectief: kaart iets gekanteld
@@ -105,7 +107,9 @@ def plaats_kaart(rng, kaart_b: int, kaart_h: int):
         if np.any(lo > hi):
             continue  # past niet in beeld, opnieuw proberen
         p += rng.uniform(lo, hi)
-        beeld = np.roll(p, -2, axis=0) if omgekeerd else p
+        # Elke kwartslag schuift de eigen linksboven-hoek één plek door in
+        # beeldvolgorde; terugdraaien zodat hoekpunt 0 linksboven in beeld is.
+        beeld = np.roll(p, kwartslagen, axis=0)
         return p.astype(np.float32), beeld.astype(np.float32)
     return None
 
@@ -163,7 +167,7 @@ def webcam_effecten() -> A.Compose:
     ])
 
 
-def maak_voorbeeld(rng, kaarten, fotos, effecten, p_leeg=0.1):
+def maak_voorbeeld(rng, kaarten, fotos, effecten, alle_richtingen: bool, p_leeg=0.1):
     """Eén 320x180-beeld + hoekpunten (4x2, in frame-pixels) of None als er geen kaart is."""
     if fotos and rng.random() < 0.5:
         img = foto_achtergrond(rng, fotos[rng.integers(len(fotos))])
@@ -173,7 +177,7 @@ def maak_voorbeeld(rng, kaarten, fotos, effecten, p_leeg=0.1):
     hoeken = None
     if rng.random() >= p_leeg:
         kaart, masker = kaarten[rng.integers(len(kaarten))]
-        plaatsing = plaats_kaart(rng, kaart.shape[1], kaart.shape[0])
+        plaatsing = plaats_kaart(rng, kaart.shape[1], kaart.shape[0], alle_richtingen)
         if plaatsing is not None:
             eigen, beeld = plaatsing
             h, w = kaart.shape[:2]
@@ -200,7 +204,7 @@ def yolo_label(hoeken) -> str:
     return f"0 {(x0 + x1) / 2:.6f} {(y0 + y1) / 2:.6f} {x1 - x0:.6f} {y1 - y0:.6f} {kp}\n"
 
 
-def maak_preview(aantal: int, uit: Path, seed: int) -> None:
+def maak_preview(aantal: int, uit: Path, seed: int, alle_richtingen: bool) -> None:
     rng = np.random.default_rng(seed)
     effecten = webcam_effecten()
     if seed is not None:
@@ -209,7 +213,7 @@ def maak_preview(aantal: int, uit: Path, seed: int) -> None:
     kleuren = [(255, 0, 0), (0, 255, 0), (0, 128, 255), (255, 0, 255)]  # RGB per hoekpunt
     tegels = []
     for _ in range(aantal):
-        img, hoeken = maak_voorbeeld(rng, kaarten, fotos, effecten)
+        img, hoeken = maak_voorbeeld(rng, kaarten, fotos, effecten, alle_richtingen)
         groot = cv2.resize(img, (FRAME_B * 2, FRAME_H * 2), interpolation=cv2.INTER_NEAREST)
         if hoeken is not None:
             p = (hoeken * 2).astype(np.int32)
@@ -230,7 +234,7 @@ def maak_preview(aantal: int, uit: Path, seed: int) -> None:
     print("Hoekpunten: 0 = rood (linksboven), 1 = groen, 2 = blauw, 3 = paars")
 
 
-def genereer(uit: Path, n_train: int, n_val: int, seed: int) -> None:
+def genereer(uit: Path, n_train: int, n_val: int, seed: int, alle_richtingen: bool) -> None:
     rng = np.random.default_rng(seed)
     effecten = webcam_effecten()
     effecten.set_random_seed(seed)
@@ -240,7 +244,7 @@ def genereer(uit: Path, n_train: int, n_val: int, seed: int) -> None:
         (uit / "images" / split).mkdir(parents=True, exist_ok=True)
         (uit / "labels" / split).mkdir(parents=True, exist_ok=True)
         for i in range(n):
-            img, hoeken = maak_voorbeeld(rng, kaarten, fotos, effecten)
+            img, hoeken = maak_voorbeeld(rng, kaarten, fotos, effecten, alle_richtingen)
             naam = f"{i:05d}"
             _, buf = cv2.imencode(".jpg", cv2.cvtColor(img, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 95])
             buf.tofile(uit / "images" / split / f"{naam}.jpg")
@@ -266,8 +270,12 @@ if __name__ == "__main__":
     parser.add_argument("--n-val", type=int, default=500)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--uit", type=Path, default=None)
+    parser.add_argument("--alle-richtingen", action="store_true",
+                        help="ook zijwaartse en omgekeerde kaarten (standaard: alleen rechtop, ±30°)")
     args = parser.parse_args()
     if args.genereer:
-        genereer(args.uit or Path("dataset_yolo"), args.n_train, args.n_val, args.seed or 0)
+        genereer(args.uit or Path("dataset_yolo"), args.n_train, args.n_val, args.seed or 0,
+                 args.alle_richtingen)
     else:
-        maak_preview(args.aantal, args.uit or Path("previews/yolo_preview.jpg"), args.seed)
+        maak_preview(args.aantal, args.uit or Path("previews/yolo_preview.jpg"), args.seed,
+                     args.alle_richtingen)

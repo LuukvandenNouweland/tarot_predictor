@@ -16,5 +16,6 @@ example/
 # Detector: gegenereerde data, trainingsruns, eigen achtergrondfoto's
 dataset_yolo/
 runs_yolo/
+runs/
 achtergronden/
 /yolo*.pt
